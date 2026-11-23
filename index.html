@@ -458,10 +458,8 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     }
     var fPre = champ("inscPrenom", "Ton prénom", { type: "text", maxlength: "60", autocomplete: "given-name" });
     var fNom = champ("inscNom", "Ton nom", { type: "text", maxlength: "60", autocomplete: "family-name" });
-    var fMail = champ("inscMail", "Ton adresse e-mail *", { type: "email", maxlength: "120", autocomplete: "email", inputmode: "email" });
+    var fMail = champ("inscMail", "Ton adresse e-mail", { type: "email", maxlength: "120", autocomplete: "email", inputmode: "email" });
     var inp = fPre.inp;
-    var astx = el("p", null, "* Je n'utiliserai jamais tes coordonnées pour de l'emailing : aucune newsletter, aucune publicité. Ton e-mail ne sert qu'à te prévenir si tu gagnes.");
-    astx.style.cssText = "margin:0;font-size:.8rem;line-height:1.4;color:var(--texte-doux);";
     var cl = el("label");
     cl.style.cssText = "display:flex;gap:10px;align-items:flex-start;font-size:.9rem;color:var(--texte-doux);";
     var cb = el("input", { type: "checkbox", required: "required" });
@@ -474,7 +472,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     var skip = el("button", { type: "button", "class": "btn secondaire" }, n ? "Je regarde sans participer" : "Plus tard");
     var actions = el("div", { "class": "actions" });
     actions.appendChild(go); actions.appendChild(skip);
-    [fPre.lab, fNom.lab, fMail.lab, astx, cl, err, actions].forEach(function (x) { form.appendChild(x); });
+    [fPre.lab, fNom.lab, fMail.lab, cl, err, actions].forEach(function (x) { form.appendChild(x); });
     cardBody.appendChild(form);
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
