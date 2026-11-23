@@ -181,6 +181,9 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
   }
 
   var preview = false;
+  var apercuCle = "";
+  var CONTENU = {};
+  var ouverture = 0;
   function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function currentDay() {
     if (preview) return 24;
@@ -298,8 +301,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
 
     if (etat === "over") {
       cardBody.appendChild(el("p", null, "Cette offre n'était valable que le " + d.when + "."));
-      var later = false;
-      for (var k in DAYS) { if (DAYS[k].k === "O" && +k > day) later = true; }
+      var later = !!d.plus;
       cardBody.appendChild(el("p", null, later ? "D'autres surprises se cachent dans les prochaines cases." : "Merci d'avoir joué le jeu !"));
       return;
     }
@@ -362,8 +364,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
       t.appendChild(el("h3", null, "Fée-licitations !"));
       t.appendChild(el("p", null, "Tu as ouvert toutes les cases, tu participes donc au tirage au sort d'" + DRAW.lot + "."));
       t.appendChild(el("p", null, "Pour participer, envoie-moi ce mot de passe en message privé sur Instagram ou Facebook avant le " + DRAW.endLabel + " :"));
-      var mot;
-      try { mot = preview ? "MOT-DE-PASSE (aperçu)" : decodeURIComponent(escape(atob(DRAW.pass))); } catch (e) { mot = ""; }
+      var mot = "MOT-DE-PASSE (aperçu)";
       var box = el("div", { "class": "code-box" });
       box.appendChild(el("span", { "class": "code long" }, mot));
       var copy = el("button", { type: "button", "class": "btn secondaire" }, "Copier le mot");
@@ -580,12 +581,45 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     verifier();
   }
 
+  function chargerCase(n) {
+    if (CONTENU[n]) return Promise.resolve(CONTENU[n]);
+    if (!API) return Promise.reject(new Error("api"));
+    var params = { action: "contenu", n: n };
+    if (preview && apercuCle) params.cle = apercuCle;
+    return appel(params).then(function (r) {
+      if (r && r.ok && r.jour) { CONTENU[n] = r.jour; return r.jour; }
+      throw new Error((r && r.erreur) || "inconnue");
+    });
+  }
+
   function openDoor(n) {
-    var d = DAYS[n];
+    var moi = ++ouverture;
     logOpen(n);
     lastFocus = document.activeElement;
     var oldConf = document.getElementById("card").querySelector(".confetti");
     if (oldConf) oldConf.remove();
+    cardBody.textContent = "";
+    cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n));
+    cardBody.appendChild(el("h2", { id: "cardTitle" }, "Un instant…"));
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+    closeBtn.focus();
+    chargerCase(n).then(function (d) { if (moi === ouverture && overlay.classList.contains("show")) afficherCase(n, d); }, function (e) {
+      if (moi !== ouverture || !overlay.classList.contains("show")) return;
+      cardBody.textContent = "";
+      cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n));
+      cardBody.appendChild(el("h2", { id: "cardTitle" }, "Je n'arrive pas à ouvrir la case"));
+      var trop = e && e.message === "trop tot";
+      cardBody.appendChild(el("p", null, trop
+        ? "Cette case ne s'ouvre pas encore. Reviens à sa date, patience !"
+        : "Pas de connexion pour le moment. Vérifie ta connexion et réessaie dans un instant."));
+      var re = el("button", { type: "button", "class": "btn" }, "Réessayer");
+      re.addEventListener("click", function () { openDoor(n); });
+      if (!trop) cardBody.appendChild(re);
+    });
+  }
+
+  function afficherCase(n, d) {
     cardBody.textContent = "";
     cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n + " · " + KIND[d.k]));
     cardBody.appendChild(el("h2", { id: "cardTitle" }, d.n));
@@ -647,7 +681,13 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     appel({ action: "statut", jeton: token }).then(function (r) { if (r && r.ok) { fusionner(r.ouvertes); render(); } }, function () {});
     envoyerAttente();
   }
-  function readHash() { preview = location.hash === "#apercu"; render(); majInscription(); }
+  function readHash() {
+    var h = location.hash || "";
+    preview = h.indexOf("#apercu") === 0;
+    apercuCle = preview && h.indexOf("#apercu=") === 0 ? decodeURIComponent(h.slice(8)) : "";
+    CONTENU = {};
+    render(); majInscription();
+  }
   window.addEventListener("hashchange", readHash);
   readHash();
 })();
