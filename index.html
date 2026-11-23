@@ -69,6 +69,7 @@ h1 { font-family: var(--font-titre); font-weight: 700; font-size: clamp(30px, 7.
 .door[aria-disabled="true"] .num { color: var(--texte-doux); }
 .door.opened { background: var(--rose-pale); border-color: var(--rose-clair); }
 .door.opened .coeur { color: var(--rose-coeur); }
+.door.missed { opacity: .6; }
 .door.today { border-color: var(--rose); box-shadow: 0 0 0 4px rgba(233,135,173,.25); }
 .door:focus-visible, .close:focus-visible, .btn:focus-visible, .choix:focus-visible, .lien:focus-visible { outline: 3px solid var(--encre); outline-offset: 3px; }
 .live { min-height: 28px; margin: 14px 0 0; text-align: center; font-weight: 700; color: var(--rose-texte); }
@@ -140,7 +141,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     <div class="status" id="status" role="status"></div>
     <div class="inscr" id="inscr" hidden></div>
     <div class="preview-banner" id="previewBanner" hidden>Mode aperçu : toutes les cases sont ouvertes (visible seulement avec ce lien)</div>
-    <p class="petit">Toutes les personnes qui auront ouvert les 24 cases seront automatiquement inscrites gratuitement au tirage au sort pour gagner une surprise. <a class="petit-lien" href="https://www.lapetitefeebretonne.fr/reglement-du-jeu" target="_blank" rel="noopener">Règlement du jeu</a></p>
+    <p class="petit">Toutes les personnes qui auront ouvert les 24 cases, chacune le jour même ou le lendemain, seront automatiquement inscrites gratuitement au tirage au sort pour gagner une surprise. <a class="petit-lien" href="https://www.lapetitefeebretonne.fr/reglement-du-jeu" target="_blank" rel="noopener">Règlement du jeu</a></p>
     <div class="meter">
       <span id="progress"></span>
       <div class="bar" aria-hidden="true"><span id="barFill" style="width:0%"></span></div>
@@ -214,13 +215,16 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     grid.textContent = "";
     ORDER.forEach(function (n) {
       var locked = n > day;
+      var miss = estManquee(n);
+      var dernier = suivi() && n === day - 1 && day <= 24 && !opened[n];
       var li = el("li");
-      var b = el("button", { type: "button", "class": "door" + (opened[n] && !locked ? " opened" : "") + (n === day && !preview ? " today" : "") });
+      var b = el("button", { type: "button", "class": "door" + (opened[n] && !locked ? " opened" : "") + (miss ? " missed" : "") + (n === day && !preview ? " today" : "") });
       b.setAttribute("data-n", n);
-      b.setAttribute("aria-label", locked ? "Case " + n + ", pas encore ouverte" : "Case " + n + (opened[n] ? ", déjà ouverte" : ""));
+      b.setAttribute("aria-label", locked ? "Case " + n + ", pas encore ouverte" : "Case " + n + (opened[n] ? ", déjà ouverte" : (miss ? ", manquée : elle ne compte plus pour le tirage" : (dernier ? ", dernier jour pour qu'elle compte pour le tirage" : ""))));
       if (locked) b.setAttribute("aria-disabled", "true");
       b.appendChild(el("span", { "class": "num" }, String(n)));
       if (n === day && !preview && !opened[n]) b.appendChild(el("span", { "class": "tag" }, "aujourd'hui"));
+      else if (dernier) b.appendChild(el("span", { "class": "tag" }, "dernier jour"));
       else {
         var c = el("span", { "class": "coeur", "aria-hidden": "true" }, opened[n] && !locked ? "♥" : "♡");
         b.appendChild(c);
@@ -237,9 +241,9 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     } else if (preview) {
       statusEl.textContent = "Aperçu complet du calendrier.";
     } else if (day < 24) {
-      statusEl.textContent = "Aujourd'hui, c'est la case " + day + ". La suivante t'attend demain.";
+      statusEl.textContent = "Aujourd'hui, c'est la case " + day + ". La suivante t'attend demain." + rappel(day);
     } else if (day === 24) {
-      statusEl.textContent = "Dernière case aujourd'hui : la 24.";
+      statusEl.textContent = "Dernière case aujourd'hui : la 24." + rappel(day);
     } else {
       statusEl.textContent = "Toutes les cases sont ouvertes. Tu peux les relire quand tu veux.";
     }
@@ -378,14 +382,14 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
       });
       box.appendChild(copy);
       t.appendChild(box);
-      t.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
+      t.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases, chacune le jour même ou le lendemain. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
       t.appendChild(el("p", { "class": "petit" }, "Participation gratuite, sans obligation d'achat. Ce jeu n'est ni organisé ni parrainé par Instagram ou Facebook."));
       cardBody.appendChild(t);
       confetti();
     } else {
       var a = el("div", { "class": "tirage attente" });
       a.appendChild(el("h3", null, "Un tirage au sort t'attend"));
-      a.appendChild(el("p", null, "Ouvre toutes les cases du calendrier pour participer au tirage au sort d'" + DRAW.lot + ". Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir, et elles restent ouvertes jusqu'au " + DRAW.endLabel + "."));
+      a.appendChild(el("p", null, "Ouvre chaque case le jour même ou le lendemain pour participer au tirage au sort d'" + DRAW.lot + ". Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir."));
       cardBody.appendChild(a);
     }
     cardBody.appendChild(el("div", { "class": "signature" }, "Marie"));
@@ -412,8 +416,21 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
       .then(function (j) { if (timer) clearTimeout(timer); return j; },
             function (e) { if (timer) clearTimeout(timer); throw e; });
   }
-  function fusionner(liste) {
+  /* Règle du tirage : une case compte si elle est ouverte le jour même ou le lendemain */
+  var manquees = {};
+  function suivi() { return !!(API && token && !preview); }
+  function compte(n) { var d = currentDay(); return d <= 24 && (d === n || d === n + 1); }
+  function estManquee(n) {
+    if (!suivi() || opened[n]) return false;
+    var d = currentDay();
+    return !!manquees[n] || (n <= d && (d > n + 1 || d > 24));
+  }
+  function rappel(day) {
+    return (suivi() && day >= 2 && !opened[day - 1]) ? " Dernier jour pour que la case " + (day - 1) + " compte pour le tirage." : "";
+  }
+  function fusionner(liste, manq) {
     (liste || []).forEach(function (k) { opened[k] = true; });
+    if (manq) { manquees = {}; manq.forEach(function (k) { manquees[k] = true; }); }
     saveOpened();
   }
 
@@ -426,7 +443,9 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
         if (!pending.length) return null;
         var n = pending[0];
         return appel({ action: "ouvrir", jeton: token, n: n }).then(function (r) {
-          if (r && (r.ok || r.erreur === "trop tot" || r.erreur === "termine")) {
+          if (r && r.erreur === "manquee") { delete opened[n]; manquees[n] = true; saveOpened(); }
+          if (r && (r.ok || r.erreur === "trop tot" || r.erreur === "termine" || r.erreur === "manquee")) {
+            if (r.ouvertes || r.manquees) fusionner(r.ouvertes, r.manquees);
             pending.shift(); savePending(); return suite();
           }
           return null;
@@ -446,7 +465,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     cardBody.textContent = "";
     cardBody.appendChild(el("p", { "class": "kicker" }, n ? "Avant d'ouvrir ta case" : "Tirage au sort"));
     cardBody.appendChild(el("h2", { id: "cardTitle" }, n ? "Je m'inscris au jeu" : "Je renseigne mes coordonnées"));
-    cardBody.appendChild(el("p", null, "Une seule inscription suffit pour tout le calendrier. Elle me permet de savoir que tu as bien ouvert les 24 cases, et de te prévenir par e-mail si tu gagnes le tirage au sort."));
+    cardBody.appendChild(el("p", null, "Une seule inscription suffit pour tout le calendrier. Elle me permet de savoir que tu as bien ouvert les 24 cases, chacune le jour même ou le lendemain, et de te prévenir par e-mail si tu gagnes le tirage au sort."));
     var form = el("form");
     form.style.cssText = "display:grid;gap:12px;margin-top:6px;";
     var style = "font:inherit;padding:12px 14px;border:2px solid var(--rose-bord);border-radius:12px;background:#fff;color:var(--texte);width:100%;box-sizing:border-box;";
@@ -496,7 +515,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
       appel({ action: "inscrire", id: fMail.inp.value, prenom: fPre.inp.value, nom: fNom.inp.value, consent: "1" }).then(function (r) {
         if (r && r.ok && r.jeton) {
           token = r.jeton; lsSet(TOKEN_KEY, token); anon = false; lsSet(ANON_KEY, "0");
-          fusionner(r.ouvertes);
+          fusionner(r.ouvertes, r.manquees);
           majInscription();
           if (n) { openDoor(n); } else {
             cardBody.textContent = "";
@@ -518,7 +537,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     if (!API || preview) { box.hidden = true; return; }
     box.hidden = false;
     if (token) {
-      box.appendChild(el("p", { "class": "ok" }, "✓ Coordonnées enregistrées : ouvre les 24 cases pour participer au tirage au sort"));
+      box.appendChild(el("p", { "class": "ok" }, "✓ Coordonnées enregistrées : ouvre chaque case le jour même ou le lendemain pour participer au tirage au sort"));
     } else {
       var b = el("button", { type: "button", "class": "btn" }, "Je renseigne mes coordonnées pour le tirage au sort");
       b.addEventListener("click", function () { lastFocus = b; afficherInscription(0); });
@@ -545,14 +564,14 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
       }
     }
     if (!token) {
-      msg("Un tirage au sort t'attend", ["Pour participer au tirage au sort d'" + DRAW.lot + ", il faut t'inscrire, puis ouvrir les 24 cases. Seules les cases ouvertes après ton inscription comptent, et elles restent ouvertes jusqu'au " + DRAW.endLabel + "."], "Je m'inscris", function () { afficherInscription(24); });
+      msg("Un tirage au sort t'attend", ["Pour participer au tirage au sort d'" + DRAW.lot + ", il faut t'inscrire, puis ouvrir les 24 cases, chacune le jour même ou le lendemain. Seules les cases ouvertes après ton inscription comptent."], "Je m'inscris", function () { afficherInscription(24); });
       return;
     }
     function verifier() {
       msg("", ["Je vérifie tes cases…"]);
       envoyerAttente().then(function () { return appel({ action: "statut", jeton: token }); }).then(function (r) {
         if (!r || !r.ok) throw new Error("x");
-        fusionner(r.ouvertes);
+        fusionner(r.ouvertes, r.manquees);
         var vu = {}; (r.ouvertes || []).forEach(function (k) { vu[k] = true; });
         var manque = []; for (var i = 1; i <= 24; i++) if (!vu[i]) manque.push(i);
         var day = currentDay();
@@ -567,12 +586,15 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
             zone.appendChild(el("p", null, "Tu as ouvert les 24 cases, tu participes donc au tirage au sort d'" + DRAW.lot + ". Tu n'as rien d'autre à faire."));
             confetti();
           }
-          zone.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
+          zone.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases, chacune le jour même ou le lendemain. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
           zone.appendChild(el("p", { "class": "petit" }, "Participation gratuite, sans obligation d'achat. Ce jeu n'est ni organisé ni parrainé par Instagram ou Facebook."));
+        } else if ((r.manquees || []).length) {
+          var mq = r.manquees, plur = mq.length > 1;
+          msg("Le tirage au sort, ce sera pour une prochaine fois", ["Pour participer, chaque case devait être ouverte le jour même ou le lendemain. Tu n'as pas pu ouvrir à temps la case" + (plur ? "s " : " ") + mq.join(", ") + ", donc tu ne participes pas au tirage au sort cette année.", "Mais tu peux continuer à ouvrir les cases et à les relire quand tu veux, elles sont à toi !"]);
         } else if (termine) {
           msg("Le tirage au sort est terminé", ["Merci d'avoir joué le jeu !"]);
         } else {
-          msg("Un tirage au sort t'attend", ["Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir pour participer au tirage au sort d'" + DRAW.lot + (possibles.length ? " : " + possibles.join(", ") + "." : ". Les prochaines s'ouvrent jour après jour.") + " Elles restent ouvertes jusqu'au " + DRAW.endLabel + "."]);
+          msg("Un tirage au sort t'attend", ["Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir pour participer au tirage au sort d'" + DRAW.lot + (possibles.length ? " : " + possibles.join(", ") + "." : ". Les prochaines s'ouvrent jour après jour.") + " Chaque case compte si tu l'ouvres le jour même ou le lendemain."]);
         }
       }).catch(function () {
         msg("", ["Je n'arrive pas à vérifier tes cases pour le moment. Réessaie dans un instant."], "Réessayer", verifier);
@@ -594,7 +616,8 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
 
   function openDoor(n) {
     var moi = ++ouverture;
-    logOpen(n);
+    var tard = suivi() && estManquee(n);
+    if (compte(n)) logOpen(n);
     lastFocus = document.activeElement;
     var oldConf = document.getElementById("card").querySelector(".confetti");
     if (oldConf) oldConf.remove();
@@ -604,7 +627,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
     closeBtn.focus();
-    chargerCase(n).then(function (d) { if (moi === ouverture && overlay.classList.contains("show")) afficherCase(n, d); }, function (e) {
+    chargerCase(n).then(function (d) { if (moi === ouverture && overlay.classList.contains("show")) afficherCase(n, d, tard); }, function (e) {
       if (moi !== ouverture || !overlay.classList.contains("show")) return;
       cardBody.textContent = "";
       cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n));
@@ -619,10 +642,15 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     });
   }
 
-  function afficherCase(n, d) {
+  function afficherCase(n, d, tard) {
     cardBody.textContent = "";
     cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n + " · " + KIND[d.k]));
     cardBody.appendChild(el("h2", { id: "cardTitle" }, d.n));
+    if (tard) {
+      var av = el("div", { "class": "tirage attente" });
+      av.appendChild(el("p", null, "Tu ouvres cette case après le délai (le jour même ou le lendemain) : elle ne compte plus pour le tirage au sort. Tu peux quand même la lire."));
+      cardBody.appendChild(av);
+    }
     if (d.img) {
       var im = el("img", { src: d.img, alt: d.alt || "", loading: "lazy" });
       im.style.cssText = "display:block;width:100%;max-height:260px;object-fit:cover;border-radius:14px;margin:0 0 14px;";
@@ -641,7 +669,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
     closeBtn.focus();
-    if (!preview && !opened[n]) { opened[n] = true; saveOpened(); }
+    if (!preview && !opened[n] && !tard) { opened[n] = true; saveOpened(); }
   }
 
   function closeCard() {
@@ -678,7 +706,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
   });
 
   if (API && token) {
-    appel({ action: "statut", jeton: token }).then(function (r) { if (r && r.ok) { fusionner(r.ouvertes); render(); } }, function () {});
+    appel({ action: "statut", jeton: token }).then(function (r) { if (r && r.ok) { fusionner(r.ouvertes, r.manquees); render(); } }, function () {});
     envoyerAttente();
   }
   function readHash() {
