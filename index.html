@@ -44,6 +44,9 @@ h1 { font-family: var(--font-titre); font-weight: 700; font-size: clamp(30px, 7.
   margin: 4px 0 0; padding: 8px 16px; border-radius: 999px; background: var(--rose-pale);
   border: 1px solid var(--rose-bord); font-weight: 700; font-size: 15px; color: var(--encre);
 }
+.petit { max-width:56ch; margin:0; font-size:12px; line-height:1.4; color:var(--texte-doux); }
+.inscr { display:flex; flex-direction:column; align-items:center; gap:6px; }
+.inscr .ok { font-weight:700; color:var(--rose-texte); margin:0; }
 .preview-banner { background: var(--brun); color: var(--creme); font-weight: 700; font-size: 14px; padding: 6px 14px; border-radius: 10px; }
 .meter { width: min(360px, 100%); display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 700; color: var(--texte-doux); }
 .bar { height: 10px; border-radius: 999px; background: var(--rose-pale); border: 1px solid var(--rose-bord); overflow: hidden; }
@@ -132,9 +135,11 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
   <header>
     <img class="logo" src="logo.png" width="612" height="408" alt="La petite fée bretonne, lithothérapie">
     <h1>Calendrier de l'Avent</h1>
-    <p class="intro">Bonjour ! Du 1er au 24 décembre, une case par jour : des conseils, des quiz sur les pierres et, certains jours, un petit bon plan caché. Rien à gagner, juste le plaisir d'ouvrir. Chaque case s'ouvre à sa date, pas avant.</p>
+    <p class="intro">Bonjour ! Du 1er au 24 décembre, une case par jour : des conseils, des quiz sur les pierres et, certains jours, un petit bon plan caché. Chaque case s'ouvre à sa date, pas avant.</p>
     <div class="status" id="status" role="status"></div>
+    <div class="inscr" id="inscr" hidden></div>
     <div class="preview-banner" id="previewBanner" hidden>Mode aperçu : toutes les cases sont ouvertes (visible seulement avec ce lien)</div>
+    <p class="petit">Toutes les personnes qui auront ouvert les 24 cases seront automatiquement inscrites gratuitement au tirage au sort pour gagner une surprise.</p>
     <div class="meter">
       <span id="progress"></span>
       <div class="bar" aria-hidden="true"><span id="barFill" style="width:0%"></span></div>
@@ -437,44 +442,79 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
 
   function afficherInscription(n) {
     cardBody.textContent = "";
-    cardBody.appendChild(el("p", { "class": "kicker" }, "Avant d'ouvrir ta case"));
-    cardBody.appendChild(el("h2", { id: "cardTitle" }, "Je m'inscris au jeu"));
-    cardBody.appendChild(el("p", null, "Une seule inscription suffit pour tout le calendrier. Elle me permet de savoir que tu as bien ouvert les 24 cases, et de te contacter si tu gagnes le tirage au sort."));
+    cardBody.appendChild(el("p", { "class": "kicker" }, n ? "Avant d'ouvrir ta case" : "Tirage au sort"));
+    cardBody.appendChild(el("h2", { id: "cardTitle" }, n ? "Je m'inscris au jeu" : "Je renseigne mes coordonnées"));
+    cardBody.appendChild(el("p", null, "Une seule inscription suffit pour tout le calendrier. Elle me permet de savoir que tu as bien ouvert les 24 cases, et de te prévenir par e-mail si tu gagnes le tirage au sort."));
     var form = el("form");
     form.style.cssText = "display:grid;gap:12px;margin-top:6px;";
-    var lab = el("label", { "for": "inscId" }, "Ton pseudo Instagram ou Facebook, ou ton e-mail");
-    lab.style.cssText = "font-weight:700;";
-    var inp = el("input", { type: "text", id: "inscId", maxlength: "120", autocomplete: "off", required: "required" });
-    inp.style.cssText = "font:inherit;padding:12px 14px;border:2px solid var(--rose-bord);border-radius:12px;background:#fff;color:var(--texte);width:100%;box-sizing:border-box;";
+    var style = "font:inherit;padding:12px 14px;border:2px solid var(--rose-bord);border-radius:12px;background:#fff;color:var(--texte);width:100%;box-sizing:border-box;";
+    function champ(id, texte, attrs) {
+      var l = el("label", { "for": id }, texte);
+      l.style.cssText = "font-weight:700;display:grid;gap:6px;";
+      var i = el("input", attrs);
+      i.id = id; i.required = true; i.style.cssText = style + "font-weight:400;";
+      l.removeAttribute("for"); l.appendChild(i);
+      return { lab: l, inp: i };
+    }
+    var fPre = champ("inscPrenom", "Ton prénom", { type: "text", maxlength: "60", autocomplete: "given-name" });
+    var fNom = champ("inscNom", "Ton nom", { type: "text", maxlength: "60", autocomplete: "family-name" });
+    var fMail = champ("inscMail", "Ton adresse e-mail", { type: "email", maxlength: "120", autocomplete: "email", inputmode: "email" });
+    var inp = fPre.inp;
     var cl = el("label");
     cl.style.cssText = "display:flex;gap:10px;align-items:flex-start;font-size:.9rem;color:var(--texte-doux);";
     var cb = el("input", { type: "checkbox", required: "required" });
     cb.style.cssText = "margin-top:3px;flex:none;width:18px;height:18px;";
     cl.appendChild(cb);
-    cl.appendChild(el("span", null, "J'accepte que La petite fée bretonne enregistre cette information et les cases que j'ouvre, uniquement pour le tirage au sort. Tu peux demander sa suppression à tout moment en écrivant à info@lapetitefeebretonne.fr."));
+    cl.appendChild(el("span", null, "J'accepte que La petite fée bretonne enregistre mon prénom, mon nom, mon e-mail et les cases que j'ouvre, uniquement pour le tirage au sort. Si je gagne, je serai prévenue par e-mail et mon nom sera annoncé en story Instagram et Facebook. Je peux demander la suppression de mes données à tout moment en écrivant à info@lapetitefeebretonne.fr."));
     var err = el("p", { role: "alert" });
     err.style.cssText = "color:var(--rose-texte);font-weight:700;margin:0;";
-    var go = el("button", { type: "submit", "class": "btn" }, "Je m'inscris et j'ouvre ma case");
-    var skip = el("button", { type: "button", "class": "btn secondaire" }, "Je regarde sans participer");
+    var go = el("button", { type: "submit", "class": "btn" }, n ? "Je m'inscris et j'ouvre ma case" : "Je valide");
+    var skip = el("button", { type: "button", "class": "btn secondaire" }, n ? "Je regarde sans participer" : "Plus tard");
     var actions = el("div", { "class": "actions" });
     actions.appendChild(go); actions.appendChild(skip);
-    [lab, inp, cl, err, actions].forEach(function (x) { form.appendChild(x); });
+    [fPre.lab, fNom.lab, fMail.lab, cl, err, actions].forEach(function (x) { form.appendChild(x); });
     cardBody.appendChild(form);
     overlay.classList.add("show");
     document.body.style.overflow = "hidden";
     inp.focus();
-    skip.addEventListener("click", function () { anon = true; lsSet(ANON_KEY, "1"); openDoor(n); });
+    skip.addEventListener("click", function () {
+      if (!n) { closeCard(); return; }
+      anon = true; lsSet(ANON_KEY, "1"); openDoor(n);
+    });
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       go.disabled = true; err.textContent = "";
-      appel({ action: "inscrire", id: inp.value, consent: "1" }).then(function (r) {
+      appel({ action: "inscrire", id: fMail.inp.value, prenom: fPre.inp.value, nom: fNom.inp.value, consent: "1" }).then(function (r) {
         if (r && r.ok && r.jeton) {
           token = r.jeton; lsSet(TOKEN_KEY, token); anon = false; lsSet(ANON_KEY, "0");
           fusionner(r.ouvertes);
-          openDoor(n);
-        } else { go.disabled = false; err.textContent = "Je n'ai pas pu t'inscrire. Vérifie ce que tu as écrit et réessaie."; }
+          majInscription();
+          if (n) { openDoor(n); } else {
+            cardBody.textContent = "";
+            cardBody.appendChild(el("h2", { id: "cardTitle" }, "C'est noté !"));
+            cardBody.appendChild(el("p", null, "Ton inscription au tirage au sort est bien enregistrée. Rendez-vous le 1er décembre pour ouvrir la première case, puis une par jour jusqu'au 24."));
+            var fermer = el("button", { type: "button", "class": "btn" }, "Fermer");
+            fermer.addEventListener("click", closeCard);
+            cardBody.appendChild(fermer);
+          }
+        } else { go.disabled = false; err.textContent = "Je n'ai pas pu t'inscrire. Vérifie ton e-mail et réessaie."; }
       }, function () { go.disabled = false; err.textContent = "Pas de connexion pour le moment. Réessaie dans un instant."; });
     });
+  }
+
+  function majInscription() {
+    var box = document.getElementById("inscr");
+    if (!box) return;
+    box.textContent = "";
+    if (!API || preview) { box.hidden = true; return; }
+    box.hidden = false;
+    if (token) {
+      box.appendChild(el("p", { "class": "ok" }, "✓ Coordonnées enregistrées : ouvre les 24 cases pour participer au tirage au sort"));
+    } else {
+      var b = el("button", { type: "button", "class": "btn" }, "Je renseigne mes coordonnées pour le tirage au sort");
+      b.addEventListener("click", function () { lastFocus = b; afficherInscription(0); });
+      box.appendChild(b);
+    }
   }
 
   function renderFinaleServeur(d) {
@@ -599,7 +639,7 @@ footer p { margin: 0 auto 10px; max-width: 58ch; }
     appel({ action: "statut", jeton: token }).then(function (r) { if (r && r.ok) { fusionner(r.ouvertes); render(); } }, function () {});
     envoyerAttente();
   }
-  function readHash() { preview = location.hash === "#apercu"; render(); }
+  function readHash() { preview = location.hash === "#apercu"; render(); majInscription(); }
   window.addEventListener("hashchange", readHash);
   readHash();
 })();
