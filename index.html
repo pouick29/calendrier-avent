@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendrier de l'Avent de La petite fée bretonne</title>
+<meta name="description" content="24 cases à ouvrir du 1er au 24 décembre : conseils, quiz sur les pierres et bons de réduction d'un seul jour.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Mise en page : une grille de petites cases rondes sur fond crème, mêmes couleurs que lapetitefeebretonne.fr */
+:root {
+  --creme: #fffaf6;
+  --carte: #ffffff;
+  --rose: #e987ad;
+  --rose-coeur: #fb97bb;
+  --rose-clair: #f5abc6;
+  --rose-bord: #fcc7d9;
+  --rose-pale: #fbe4ec;
+  --texte: #564b47;
+  --texte-doux: #7a6b66;
+  --encre: #3f2f2b;
+  --rose-texte: #b0476f;
+  --brun: #654a43;
+  --font-titre: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-corps: "Quicksand", "Trebuchet MS", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--creme); color: var(--texte);
+  font-family: var(--font-corps); font-size: 17px; line-height: 1.6; font-weight: 500;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 36px; }
+
+header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.logo { width: min(250px, 62vw); height: auto; display: block; }
+h1 { font-family: var(--font-titre); font-weight: 700; font-size: clamp(30px, 7.5vw, 46px); line-height: 1.1; margin: 4px 0 0; color: var(--texte); text-wrap: balance; }
+.intro { max-width: 56ch; margin: 0; color: var(--texte); }
+.status {
+  margin: 4px 0 0; padding: 8px 16px; border-radius: 999px; background: var(--rose-pale);
+  border: 1px solid var(--rose-bord); font-weight: 700; font-size: 15px; color: var(--encre);
+}
+.preview-banner { background: var(--brun); color: var(--creme); font-weight: 700; font-size: 14px; padding: 6px 14px; border-radius: 10px; }
+.meter { width: min(360px, 100%); display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 700; color: var(--texte-doux); }
+.bar { height: 10px; border-radius: 999px; background: var(--rose-pale); border: 1px solid var(--rose-bord); overflow: hidden; }
+.bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--rose-clair), var(--rose)); border-radius: 999px; transition: width .3s ease; }
+
+.grid { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(6, 1fr); gap: 14px; } }
+.door {
+  width: 100%; aspect-ratio: 1 / 1; padding: 0; cursor: pointer; font-family: var(--font-corps);
+  background: var(--carte); color: var(--texte); border: 2px solid var(--rose-bord); border-radius: 22px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  box-shadow: 0 2px 8px rgba(233,135,173,.14); transition: transform .15s ease, border-color .15s ease;
+}
+.door .num { font-family: var(--font-titre); font-weight: 700; font-size: clamp(26px, 6.4vw, 34px); line-height: 1; }
+.door .coeur { font-size: 17px; line-height: 1; color: var(--rose-clair); }
+.door .tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--rose-texte); min-height: 14px; }
+.door:hover:not([aria-disabled="true"]) { transform: translateY(-2px); border-color: var(--rose); }
+.door[aria-disabled="true"] { cursor: not-allowed; background: #fdf3ef; border-color: #f3e3dd; box-shadow: none; }
+.door[aria-disabled="true"] .num { color: var(--texte-doux); }
+.door.opened { background: var(--rose-pale); border-color: var(--rose-clair); }
+.door.opened .coeur { color: var(--rose-coeur); }
+.door.today { border-color: var(--rose); box-shadow: 0 0 0 4px rgba(233,135,173,.25); }
+.door:focus-visible, .close:focus-visible, .btn:focus-visible, .choix:focus-visible, .lien:focus-visible { outline: 3px solid var(--encre); outline-offset: 3px; }
+.live { min-height: 28px; margin: 14px 0 0; text-align: center; font-weight: 700; color: var(--rose-texte); }
+
+.overlay { position: fixed; inset: 0; background: rgba(63,47,43,.55); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+.overlay.show { display: flex; }
+@media (min-width: 640px) { .overlay { align-items: center; padding: 24px; } }
+.card {
+  position: relative; width: 100%; max-width: 540px; max-height: 92%; overflow-y: auto; background: var(--carte);
+  border-left: 6px solid var(--rose-clair); border-radius: 24px 24px 0 0; padding: 26px 22px 28px;
+}
+@media (min-width: 640px) { .card { border-radius: 24px; } }
+.close {
+  position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--rose-bord); background: var(--creme); color: var(--texte); font-size: 24px; line-height: 1; cursor: pointer;
+}
+.kicker { margin: 0 44px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--rose-texte); }
+.card h2 { font-family: var(--font-titre); font-weight: 700; font-size: 29px; line-height: 1.15; margin: 6px 0 14px; color: var(--texte); text-wrap: balance; }
+.card p { margin: 0 0 12px; max-width: 60ch; }
+.card ul { margin: 0 0 12px; padding-left: 20px; }
+.card li { margin-bottom: 8px; }
+.quest { font-weight: 700; font-size: 18px; color: var(--encre); }
+.choix-liste { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 14px; }
+.choix {
+  min-height: 50px; padding: 10px 16px; border-radius: 14px; border: 2px solid var(--rose-bord); background: var(--creme);
+  color: var(--texte); font-family: var(--font-corps); font-size: 17px; font-weight: 700; text-align: left; cursor: pointer;
+}
+.choix:hover:not(:disabled) { border-color: var(--rose); }
+.choix:disabled { cursor: default; }
+.choix.juste { background: var(--rose-pale); border-color: var(--rose); }
+.choix.faux { background: #f4efed; border-color: #cdc2be; color: var(--texte-doux); }
+.verdict { font-family: var(--font-titre); font-weight: 700; font-size: 24px; margin: 6px 0 8px; color: var(--encre); }
+
+.badge { display: inline-block; margin: 0 0 12px; padding: 5px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; background: var(--rose-pale); border: 1px solid var(--rose-clair); color: var(--encre); }
+.badge.fini { background: #f4efed; border-color: #cdc2be; color: var(--texte-doux); }
+.code-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 6px 0 14px; padding: 12px 14px; border: 2px dashed var(--rose); border-radius: 16px; background: var(--creme); }
+.code { font-family: var(--font-corps); font-weight: 700; font-size: 26px; letter-spacing: .12em; color: var(--encre); user-select: all; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 20px; border: 0; border-radius: 999px;
+  background: var(--rose); color: var(--encre); font-family: var(--font-corps); font-weight: 700; font-size: 18px; text-decoration: none; cursor: pointer;
+}
+.btn:hover { background: var(--rose-coeur); }
+.btn.secondaire { background: var(--rose-pale); border: 1px solid var(--rose-clair); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.signature { font-family: var(--font-titre); font-style: italic; font-size: 24px; margin-top: 6px; }
+.tirage { margin-top: 18px; padding: 18px 16px; border-radius: 18px; background: var(--rose-pale); border: 2px solid var(--rose-clair); }
+.tirage h3 { font-family: var(--font-titre); font-weight: 700; font-size: 26px; line-height: 1.15; margin: 0 0 10px; color: var(--encre); }
+.tirage p { max-width: none; }
+.tirage .petit { font-size: 14px; color: var(--texte-doux); margin: 10px 0 0; }
+.tirage.attente { background: var(--creme); border-style: dashed; }
+.tirage .code-box { background: var(--carte); }
+.code.long { font-size: 22px; letter-spacing: .06em; }
+.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+.confetti span { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; opacity: 0; animation: chute 2.6s ease-in forwards; }
+@keyframes chute { 0% { opacity: 1; transform: translateY(0) rotate(0deg); } 100% { opacity: 0; transform: translateY(520px) rotate(540deg); } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+footer { background: var(--brun); color: var(--creme); text-align: center; padding: 28px 16px 32px; font-size: 15px; }
+footer p { margin: 0 auto 10px; max-width: 58ch; }
+.lien { color: var(--creme); font-weight: 700; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img class="logo" src="logo.png" width="612" height="408" alt="La petite fée bretonne, lithothérapie">
+    <h1>Calendrier de l'Avent</h1>
+    <p class="intro">Bonjour ! Du 1er au 24 décembre, une case par jour : des conseils, des quiz sur les pierres et, certains jours, un petit bon plan caché. Rien à gagner, juste le plaisir d'ouvrir. Chaque case s'ouvre à sa date, pas avant.</p>
+    <div class="status" id="status" role="status"></div>
+    <div class="preview-banner" id="previewBanner" hidden>Mode aperçu : toutes les cases sont ouvertes (visible seulement avec ce lien)</div>
+    <div class="meter">
+      <span id="progress"></span>
+      <div class="bar" aria-hidden="true"><span id="barFill" style="width:0%"></span></div>
+    </div>
+  </header>
+
+  <ul class="grid" id="grid"></ul>
+  <p class="live" id="live" role="status" aria-live="polite"></p>
+</div>
+
+<footer>
+  <p>Les pierres naturelles ne remplacent en aucun cas un avis ou un traitement médical. Une pierre ne soigne pas, elle accompagne.</p>
+  <p>Un doute sur la pierre qu'il te faut ? Mon conseil est offert avec chaque commande, écris-moi.</p>
+  <p><a class="lien" href="https://lapetitefeebretonne.fr">lapetitefeebretonne.fr</a></p>
+  <p>Marie 🧚‍♀️</p>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="card" id="card" role="dialog" aria-modal="true" aria-labelledby="cardTitle">
+    <button class="close" id="close" type="button" aria-label="Fermer la case">×</button>
+    <div id="cardBody"></div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  var STORE = "lpfb-avent-" + CFG.year;
+  var KIND = { C: "Conseil du jour", Q: "Quiz pierres", O: "Surprise du jour", B: "Coulisses", D: "Défi du jour", S: "Le savais-tu ?", I: "Inspiration du jour", M: "Joyeux Noël", F: "Joyeux Noël" };
+  /* Numéros mélangés dans la grille, comme dans un vrai calendrier */
+  var ORDER = [7,19,2,14,23,9, 16,4,21,12,1,18, 10,22,5,13,8,20, 3,15,11,24,6,17];
+
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+
+  var preview = false;
+  function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function currentDay() {
+    if (preview) return 24;
+    var today = startOfDay(new Date());
+    var start = new Date(CFG.year, 11, 1);
+    if (today < start) return 0;
+    return Math.round((today - start) / 86400000) + 1;
+  }
+  function daysUntilStart() { return Math.round((new Date(CFG.year, 11, 1) - startOfDay(new Date())) / 86400000); }
+
+  var opened = {};
+  try { opened = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { opened = {}; }
+  function saveOpened() { try { localStorage.setItem(STORE, JSON.stringify(opened)); } catch (e) {} }
+
+  var grid = document.getElementById("grid");
+  var live = document.getElementById("live");
+  var statusEl = document.getElementById("status");
+  var progressEl = document.getElementById("progress");
+  var barFill = document.getElementById("barFill");
+  var overlay = document.getElementById("overlay");
+  var cardBody = document.getElementById("cardBody");
+  var closeBtn = document.getElementById("close");
+  var lastFocus = null;
+
+  function render() {
+    var day = currentDay();
+    document.getElementById("previewBanner").hidden = !preview;
+    grid.textContent = "";
+    ORDER.forEach(function (n) {
+      var locked = n > day;
+      var li = el("li");
+      var b = el("button", { type: "button", "class": "door" + (opened[n] && !locked ? " opened" : "") + (n === day && !preview ? " today" : "") });
+      b.setAttribute("data-n", n);
+      b.setAttribute("aria-label", locked ? "Case " + n + ", pas encore ouverte" : "Case " + n + (opened[n] ? ", déjà ouverte" : ""));
+      if (locked) b.setAttribute("aria-disabled", "true");
+      b.appendChild(el("span", { "class": "num" }, String(n)));
+      if (n === day && !preview && !opened[n]) b.appendChild(el("span", { "class": "tag" }, "aujourd'hui"));
+      else {
+        var c = el("span", { "class": "coeur", "aria-hidden": "true" }, opened[n] && !locked ? "♥" : "♡");
+        b.appendChild(c);
+      }
+      li.appendChild(b);
+      grid.appendChild(li);
+    });
+    var count = Object.keys(opened).filter(function (k) { return +k <= day; }).length;
+    progressEl.textContent = count + " case" + (count > 1 ? "s" : "") + " ouverte" + (count > 1 ? "s" : "") + " sur 24";
+    barFill.style.width = Math.round(count / 24 * 100) + "%";
+    if (day === 0) {
+      var u = daysUntilStart();
+      statusEl.textContent = "La première case s'ouvre le 1er décembre, dans " + u + " jour" + (u > 1 ? "s" : "") + ".";
+    } else if (preview) {
+      statusEl.textContent = "Aperçu complet du calendrier.";
+    } else if (day < 24) {
+      statusEl.textContent = "Aujourd'hui, c'est la case " + day + ". La suivante t'attend demain.";
+    } else if (day === 24) {
+      statusEl.textContent = "Dernière case aujourd'hui : la 24.";
+    } else {
+      statusEl.textContent = "Toutes les cases sont ouvertes. Tu peux les relire quand tu veux.";
+    }
+  }
+
+  function paragraphs(parent, arr) { (arr || []).forEach(function (t) { parent.appendChild(el("p", null, t)); }); }
+  function list(parent, arr) {
+    if (!arr) return;
+    var ul = el("ul");
+    arr.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+    parent.appendChild(ul);
+  }
+
+  function renderQuiz(d) {
+    cardBody.appendChild(el("p", { "class": "quest" }, d.q));
+    var wrap = el("div", { "class": "choix-liste" });
+    var result = el("div");
+    var buttons = [];
+    d.o.forEach(function (label, i) {
+      var btn = el("button", { type: "button", "class": "choix" }, label);
+      btn.addEventListener("click", function () {
+        buttons.forEach(function (x, j) {
+          x.disabled = true;
+          if (j === d.a) { x.classList.add("juste"); x.textContent = "✓ " + d.o[j]; }
+          else if (j === i) { x.classList.add("faux"); }
+        });
+        result.appendChild(el("div", { "class": "verdict" }, i === d.a ? "Bien vu !" : "Pas tout à fait."));
+        paragraphs(result, d.e);
+      });
+      buttons.push(btn);
+      wrap.appendChild(btn);
+    });
+    cardBody.appendChild(wrap);
+    cardBody.appendChild(result);
+  }
+
+  function renderMessages(d) {
+    var i = 0;
+    var msg = el("p", { "class": "message-inspi", "aria-live": "polite" }, d.m[0]);
+    msg.style.cssText = "font-family:'Playfair Display',serif;font-size:1.3rem;line-height:1.5;text-align:center;color:var(--rose-texte);margin:18px 0 22px;";
+    var actions = el("div", { "class": "actions" });
+    var more = el("button", { type: "button", "class": "btn" }, "Un autre message");
+    more.addEventListener("click", function () {
+      i = (i + 1) % d.m.length;
+      msg.textContent = d.m[i];
+    });
+    cardBody.appendChild(msg);
+    if (d.m.length > 1) { actions.appendChild(more); cardBody.appendChild(actions); }
+  }
+
+  function renderOffer(n, d) {
+    var day = currentDay();
+    var etat = preview ? "preview" : (n === day ? "live" : "over");
+    var badge;
+    if (etat === "live") badge = el("span", { "class": "badge" }, "Valable aujourd'hui seulement");
+    else if (etat === "preview") badge = el("span", { "class": "badge" }, "Aperçu : valable le " + d.when + " seulement");
+    else badge = el("span", { "class": "badge fini" }, "Offre terminée");
+    cardBody.appendChild(badge);
+
+    if (etat === "over") {
+      cardBody.appendChild(el("p", null, "Cette offre n'était valable que le " + d.when + "."));
+      var later = false;
+      for (var k in DAYS) { if (DAYS[k].k === "O" && +k > day) later = true; }
+      cardBody.appendChild(el("p", null, later ? "D'autres surprises se cachent dans les prochaines cases." : "Merci d'avoir joué le jeu !"));
+      return;
+    }
+    paragraphs(cardBody, d.p);
+    if (d.note) {
+      var note = el("p", { "class": "note-offre" }, d.note);
+      note.style.cssText = "font-size:.85rem;color:var(--texte-doux);margin-top:-4px;";
+      cardBody.appendChild(note);
+    }
+    if (d.code) {
+      var box = el("div", { "class": "code-box" });
+      box.appendChild(el("span", { "class": "code", id: "codeText" }, d.code));
+      var copy = el("button", { type: "button", "class": "btn secondaire" }, "Copier le code");
+      copy.addEventListener("click", function () {
+        function ok() { copy.textContent = "Code copié"; }
+        function ko() { copy.textContent = "Sélectionne le code"; }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(d.code).then(ok, ko);
+          else ko();
+        } catch (e) { ko(); }
+      });
+      box.appendChild(copy);
+      cardBody.appendChild(box);
+    }
+    var actions = el("div", { "class": "actions" });
+    actions.appendChild(el("a", { "class": "btn", href: CFG.shop }, "Aller à la boutique"));
+    cardBody.appendChild(actions);
+  }
+
+  function confetti() {
+    var card = document.getElementById("card");
+    var old = card.querySelector(".confetti");
+    if (old) old.remove();
+    var wrap = el("div", { "class": "confetti", "aria-hidden": "true" });
+    var couleurs = ["#e987ad", "#fb97bb", "#f5abc6", "#fcc7d9", "#654a43", "#ffffff"];
+    for (var i = 0; i < 44; i++) {
+      var s = el("span");
+      s.style.left = Math.round(Math.random() * 100) + "%";
+      s.style.background = couleurs[i % couleurs.length];
+      s.style.animationDelay = (Math.random() * 0.9).toFixed(2) + "s";
+      s.style.animationDuration = (2 + Math.random() * 1.4).toFixed(2) + "s";
+      wrap.appendChild(s);
+    }
+    card.appendChild(wrap);
+  }
+
+  function renderFinale(d) {
+    paragraphs(cardBody, d.p);
+    var fin = new Date(DRAW.end[0], DRAW.end[1], DRAW.end[2], 23, 59, 59);
+    var close = !preview && new Date() > fin;
+    var manque = [];
+    for (var i = 1; i <= 23; i++) if (!opened[i]) manque.push(i);
+    var ok = preview || manque.length === 0;
+    if (close) {
+      var b = el("div", { "class": "tirage attente" });
+      b.appendChild(el("p", null, "Le tirage au sort est terminé. Merci à toutes celles qui ont joué le jeu !"));
+      cardBody.appendChild(b);
+    } else if (ok) {
+      var t = el("div", { "class": "tirage" });
+      t.appendChild(el("h3", null, "Fée-licitations !"));
+      t.appendChild(el("p", null, "Tu as ouvert toutes les cases, tu participes donc au tirage au sort d'" + DRAW.lot + "."));
+      t.appendChild(el("p", null, "Pour participer, envoie-moi ce mot de passe en message privé sur Instagram ou Facebook avant le " + DRAW.endLabel + " :"));
+      var mot;
+      try { mot = preview ? "MOT-DE-PASSE (aperçu)" : decodeURIComponent(escape(atob(DRAW.pass))); } catch (e) { mot = ""; }
+      var box = el("div", { "class": "code-box" });
+      box.appendChild(el("span", { "class": "code long" }, mot));
+      var copy = el("button", { type: "button", "class": "btn secondaire" }, "Copier le mot");
+      copy.addEventListener("click", function () {
+        function ok2() { copy.textContent = "Mot copié"; }
+        function ko() { copy.textContent = "Sélectionne le mot"; }
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(mot).then(ok2, ko);
+          else ko();
+        } catch (e) { ko(); }
+      });
+      box.appendChild(copy);
+      t.appendChild(box);
+      t.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
+      t.appendChild(el("p", { "class": "petit" }, "Participation gratuite, sans obligation d'achat. Ce jeu n'est ni organisé ni parrainé par Instagram ou Facebook."));
+      cardBody.appendChild(t);
+      confetti();
+    } else {
+      var a = el("div", { "class": "tirage attente" });
+      a.appendChild(el("h3", null, "Un tirage au sort t'attend"));
+      a.appendChild(el("p", null, "Ouvre toutes les cases du calendrier pour participer au tirage au sort d'" + DRAW.lot + ". Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir, et elles restent ouvertes jusqu'au " + DRAW.endLabel + "."));
+      cardBody.appendChild(a);
+    }
+    cardBody.appendChild(el("div", { "class": "signature" }, "Marie"));
+  }
+
+
+  /* ---------- Suivi côté serveur (Google Sheets) ---------- */
+  var API = (CFG.api || "").replace(/\s+/g, "");
+  var TOKEN_KEY = STORE + "-jeton", PEND_KEY = STORE + "-attente", ANON_KEY = STORE + "-sans";
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var token = lsGet(TOKEN_KEY) || "";
+  var anon = lsGet(ANON_KEY) === "1";
+  var pending = [];
+  try { pending = JSON.parse(lsGet(PEND_KEY) || "[]") || []; } catch (e) { pending = []; }
+  function savePending() { lsSet(PEND_KEY, JSON.stringify(pending)); }
+
+  function appel(params) {
+    var qs = Object.keys(params).map(function (k) { return encodeURIComponent(k) + "=" + encodeURIComponent(params[k]); }).join("&");
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 15000) : null;
+    return fetch(API + (API.indexOf("?") > -1 ? "&" : "?") + qs, ctrl ? { signal: ctrl.signal } : {})
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (timer) clearTimeout(timer); return j; },
+            function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+  function fusionner(liste) {
+    (liste || []).forEach(function (k) { opened[k] = true; });
+    saveOpened();
+  }
+
+  /* file d'attente : chaque ouverture est envoyée au serveur, avec nouvel essai si le réseau lâche */
+  var chaine = Promise.resolve();
+  function envoyerAttente() {
+    chaine = chaine.then(function () {
+      if (!token) return null;
+      var suite = function () {
+        if (!pending.length) return null;
+        var n = pending[0];
+        return appel({ action: "ouvrir", jeton: token, n: n }).then(function (r) {
+          if (r && (r.ok || r.erreur === "trop tot" || r.erreur === "termine")) {
+            pending.shift(); savePending(); return suite();
+          }
+          return null;
+        });
+      };
+      return suite();
+    }).catch(function () { return null; });
+    return chaine;
+  }
+  function logOpen(n) {
+    if (!API || preview || !token) return chaine;
+    if (pending.indexOf(n) === -1) { pending.push(n); savePending(); }
+    return envoyerAttente();
+  }
+
+  function afficherInscription(n) {
+    cardBody.textContent = "";
+    cardBody.appendChild(el("p", { "class": "kicker" }, "Avant d'ouvrir ta case"));
+    cardBody.appendChild(el("h2", { id: "cardTitle" }, "Je m'inscris au jeu"));
+    cardBody.appendChild(el("p", null, "Une seule inscription suffit pour tout le calendrier. Elle me permet de savoir que tu as bien ouvert les 24 cases, et de te contacter si tu gagnes le tirage au sort."));
+    var form = el("form");
+    form.style.cssText = "display:grid;gap:12px;margin-top:6px;";
+    var lab = el("label", { "for": "inscId" }, "Ton pseudo Instagram ou Facebook, ou ton e-mail");
+    lab.style.cssText = "font-weight:700;";
+    var inp = el("input", { type: "text", id: "inscId", maxlength: "120", autocomplete: "off", required: "required" });
+    inp.style.cssText = "font:inherit;padding:12px 14px;border:2px solid var(--rose-bord);border-radius:12px;background:#fff;color:var(--texte);width:100%;box-sizing:border-box;";
+    var cl = el("label");
+    cl.style.cssText = "display:flex;gap:10px;align-items:flex-start;font-size:.9rem;color:var(--texte-doux);";
+    var cb = el("input", { type: "checkbox", required: "required" });
+    cb.style.cssText = "margin-top:3px;flex:none;width:18px;height:18px;";
+    cl.appendChild(cb);
+    cl.appendChild(el("span", null, "J'accepte que La petite fée bretonne enregistre cette information et les cases que j'ouvre, uniquement pour le tirage au sort. Tu peux demander sa suppression à tout moment en écrivant à info@lapetitefeebretonne.fr."));
+    var err = el("p", { role: "alert" });
+    err.style.cssText = "color:var(--rose-texte);font-weight:700;margin:0;";
+    var go = el("button", { type: "submit", "class": "btn" }, "Je m'inscris et j'ouvre ma case");
+    var skip = el("button", { type: "button", "class": "btn secondaire" }, "Je regarde sans participer");
+    var actions = el("div", { "class": "actions" });
+    actions.appendChild(go); actions.appendChild(skip);
+    [lab, inp, cl, err, actions].forEach(function (x) { form.appendChild(x); });
+    cardBody.appendChild(form);
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+    inp.focus();
+    skip.addEventListener("click", function () { anon = true; lsSet(ANON_KEY, "1"); openDoor(n); });
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      go.disabled = true; err.textContent = "";
+      appel({ action: "inscrire", id: inp.value, consent: "1" }).then(function (r) {
+        if (r && r.ok && r.jeton) {
+          token = r.jeton; lsSet(TOKEN_KEY, token); anon = false; lsSet(ANON_KEY, "0");
+          fusionner(r.ouvertes);
+          openDoor(n);
+        } else { go.disabled = false; err.textContent = "Je n'ai pas pu t'inscrire. Vérifie ce que tu as écrit et réessaie."; }
+      }, function () { go.disabled = false; err.textContent = "Pas de connexion pour le moment. Réessaie dans un instant."; });
+    });
+  }
+
+  function renderFinaleServeur(d) {
+    paragraphs(cardBody, d.p);
+    var fin = new Date(DRAW.end[0], DRAW.end[1], DRAW.end[2], 23, 59, 59);
+    var termine = new Date() > fin;
+    var zone = el("div", { "class": "tirage attente" });
+    cardBody.appendChild(zone);
+    cardBody.appendChild(el("div", { "class": "signature" }, "Marie"));
+    function msg(titre, lignes, bouton, action) {
+      zone.textContent = "";
+      zone.className = "tirage attente";
+      if (titre) zone.appendChild(el("h3", null, titre));
+      lignes.forEach(function (t) { zone.appendChild(el("p", null, t)); });
+      if (bouton) {
+        var b = el("button", { type: "button", "class": "btn" }, bouton);
+        b.addEventListener("click", action);
+        zone.appendChild(b);
+      }
+    }
+    if (!token) {
+      msg("Un tirage au sort t'attend", ["Pour participer au tirage au sort d'" + DRAW.lot + ", il faut t'inscrire, puis ouvrir les 24 cases. Seules les cases ouvertes après ton inscription comptent, et elles restent ouvertes jusqu'au " + DRAW.endLabel + "."], "Je m'inscris", function () { afficherInscription(24); });
+      return;
+    }
+    function verifier() {
+      msg("", ["Je vérifie tes cases…"]);
+      envoyerAttente().then(function () { return appel({ action: "statut", jeton: token }); }).then(function (r) {
+        if (!r || !r.ok) throw new Error("x");
+        fusionner(r.ouvertes);
+        var vu = {}; (r.ouvertes || []).forEach(function (k) { vu[k] = true; });
+        var manque = []; for (var i = 1; i <= 24; i++) if (!vu[i]) manque.push(i);
+        var day = currentDay();
+        var possibles = manque.filter(function (k) { return k <= day; });
+        if (!manque.length) {
+          zone.textContent = ""; zone.className = "tirage";
+          if (termine) {
+            zone.appendChild(el("h3", null, "Merci d'avoir joué !"));
+            zone.appendChild(el("p", null, "Tu as ouvert les 24 cases : tu participes bien au tirage au sort d'" + DRAW.lot + "."));
+          } else {
+            zone.appendChild(el("h3", null, "Fée-licitations !"));
+            zone.appendChild(el("p", null, "Tu as ouvert les 24 cases, tu participes donc au tirage au sort d'" + DRAW.lot + ". Tu n'as rien d'autre à faire."));
+            confetti();
+          }
+          zone.appendChild(el("p", null, "Un seul gagnant sera tiré au sort parmi toutes les personnes qui ont ouvert les 24 cases. Je l'annonce en story sur Instagram et Facebook le " + DRAW.dateLabel + "."));
+          zone.appendChild(el("p", { "class": "petit" }, "Participation gratuite, sans obligation d'achat. Ce jeu n'est ni organisé ni parrainé par Instagram ou Facebook."));
+        } else if (termine) {
+          msg("Le tirage au sort est terminé", ["Merci d'avoir joué le jeu !"]);
+        } else {
+          msg("Un tirage au sort t'attend", ["Il te reste " + manque.length + " case" + (manque.length > 1 ? "s" : "") + " à ouvrir pour participer au tirage au sort d'" + DRAW.lot + (possibles.length ? " : " + possibles.join(", ") + "." : ". Les prochaines s'ouvrent jour après jour.") + " Elles restent ouvertes jusqu'au " + DRAW.endLabel + "."]);
+        }
+      }).catch(function () {
+        msg("", ["Je n'arrive pas à vérifier tes cases pour le moment. Réessaie dans un instant."], "Réessayer", verifier);
+      });
+    }
+    verifier();
+  }
+
+  function openDoor(n) {
+    var d = DAYS[n];
+    logOpen(n);
+    lastFocus = document.activeElement;
+    var oldConf = document.getElementById("card").querySelector(".confetti");
+    if (oldConf) oldConf.remove();
+    cardBody.textContent = "";
+    cardBody.appendChild(el("p", { "class": "kicker" }, "Case " + n + " · " + KIND[d.k]));
+    cardBody.appendChild(el("h2", { id: "cardTitle" }, d.n));
+    if (d.img) {
+      var im = el("img", { src: d.img, alt: d.alt || "", loading: "lazy" });
+      im.style.cssText = "display:block;width:100%;max-height:260px;object-fit:cover;border-radius:14px;margin:0 0 14px;";
+      cardBody.appendChild(im);
+    }
+    if (d.k === "Q") renderQuiz(d);
+    else if (d.k === "O") renderOffer(n, d);
+    else if (d.k === "F") { if (API && !preview) renderFinaleServeur(d); else renderFinale(d); }
+    else if (d.k === "I" && d.m) renderMessages(d);
+    else {
+      paragraphs(cardBody, d.p);
+      list(cardBody, d.l);
+      paragraphs(cardBody, d.p2);
+      if (d.k === "M") cardBody.appendChild(el("div", { "class": "signature" }, "Marie"));
+    }
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+    closeBtn.focus();
+    if (!preview && !opened[n]) { opened[n] = true; saveOpened(); }
+  }
+
+  function closeCard() {
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+    render();
+    if (lastFocus && lastFocus.getAttribute) {
+      var n = lastFocus.getAttribute("data-n");
+      var again = n && grid.querySelector('[data-n="' + n + '"]');
+      (again || lastFocus).focus();
+    }
+  }
+
+  grid.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".door");
+    if (!b) return;
+    var n = +b.getAttribute("data-n");
+    if (n > currentDay()) {
+      var u = n - currentDay();
+      live.textContent = currentDay() === 0
+        ? "La case " + n + " s'ouvrira le " + n + " décembre. Patience !"
+        : "La case " + n + " s'ouvrira le " + n + " décembre, dans " + u + " jour" + (u > 1 ? "s" : "") + ". Patience !";
+      return;
+    }
+    live.textContent = "";
+    lastFocus = b;
+    if (API && !preview && !token && !anon) { afficherInscription(n); return; }
+    openDoor(n);
+  });
+  closeBtn.addEventListener("click", closeCard);
+  overlay.addEventListener("click", function (ev) { if (ev.target === overlay) closeCard(); });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && overlay.classList.contains("show")) closeCard();
+  });
+
+  if (API && token) {
+    appel({ action: "statut", jeton: token }).then(function (r) { if (r && r.ok) { fusionner(r.ouvertes); render(); } }, function () {});
+    envoyerAttente();
+  }
+  function readHash() { preview = location.hash === "#apercu"; render(); }
+  window.addEventListener("hashchange", readHash);
+  readHash();
+})();
+</script>
+</body>
+</html>
