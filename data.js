@@ -125,8 +125,8 @@ var DAYS = {
    Le mot de passe est rangé en base64 (FÉE-LICITATIONS) : à envoyer à Marie en message privé. */
 var DRAW = {
   pass: "RsOJRS1MSUNJVEFUSU9OUw==",
-  end: [2026, 11, 31],
-  endLabel: "31 décembre à minuit",
+  end: [2026, 11, 24],
+  endLabel: "24 décembre à minuit",
   dateLabel: "2 janvier",
   lot: "un coffret surprise de La petite fée bretonne"
 };
